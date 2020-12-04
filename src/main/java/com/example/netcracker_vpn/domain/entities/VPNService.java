@@ -1,16 +1,13 @@
-package com.example.netcracker_vpn.domain;
+package com.example.netcracker_vpn.domain.entities;
 
 import lombok.Data;
 
 import javax.persistence.*;
-import java.time.LocalDate;
+import java.sql.Timestamp;
 
 @Data
 @Entity
-@Table(
-        name = "vpn_services",
-        uniqueConstraints = @UniqueConstraint(columnNames={"name", "server"})
-)
+@Table(name = "vpn_services")
 
 public class VPNService {
 
@@ -19,7 +16,7 @@ public class VPNService {
     @GeneratedValue(strategy = GenerationType.SEQUENCE)
     private long id;
 
-    @Column(name = "name", nullable = false)
+    @Column(name = "name", length = 30, nullable = false)
     private String name;
 
     @Column(name = "server", unique = true, length = 30, nullable = false)
@@ -28,12 +25,12 @@ public class VPNService {
     @Column(name = "password", length = 100, nullable = false)
     private String password;
 
-    @Column(name = "date_expiry", length = 30, nullable = false)
-    private LocalDate dateExpiry;
+    @Column(name = "date_expiry", nullable = false)
+    private Timestamp dateExpiry;
 
     public VPNService() {}
 
-    public VPNService(String name, String server, String password, LocalDate dateExpiry) {
+    public VPNService(String name, String server, String password, Timestamp dateExpiry) {
         this.name = name;
         this.server = server;
         this.password = password;

@@ -1,65 +1,73 @@
 package com.example.netcracker_vpn.services;
 
-import com.example.netcracker_vpn.domain.VPNService;
-import com.example.netcracker_vpn.domain.VPNServiceDTO;
-import com.example.netcracker_vpn.exceptions.ServerAlreadyExists;
+import com.example.netcracker_vpn.domain.entities.VPNService;
+import com.example.netcracker_vpn.domain.dto.VPNServiceDTO;
+import com.example.netcracker_vpn.exceptions.ServerAlreadyExistsException;
+import com.example.netcracker_vpn.exceptions.ServiceNotFoundByIdException;
 import com.example.netcracker_vpn.repos.VPNServicesRepo;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Optional;
-import java.util.stream.Collectors;
-import java.util.stream.StreamSupport;
 
 @Service
 public class VPNServicesService {
 
-    final VPNServicesRepo servicesRepo;
+    private final VPNServicesRepo servicesRepo;
 
+    @Autowired
     public VPNServicesService(VPNServicesRepo servicesRepo) {
         this.servicesRepo = servicesRepo;
     }
 
     public Collection<VPNServiceDTO.Response.Public> getAll() {
-        return StreamSupport.stream(servicesRepo.findAll().spliterator(), false)
-                .map(VPNServiceDTO.Response.Public::fromEntity)
-                .collect(Collectors.toList());
+        Collection<VPNServiceDTO.Response.Public> response = new ArrayList<>();
+        for (VPNService service :
+                servicesRepo.findAll()) {
+            response.add(VPNServiceDTO.Response.Public.fromEntity(service));
+        }
+        return response;
     }
 
-    public Optional<VPNServiceDTO.Response.Public> getById(long id) {
-        return servicesRepo.findById(id)
-                .map(VPNServiceDTO.Response.Public::fromEntity);
+    public VPNServiceDTO.Response.Public getById(long id) throws ServiceNotFoundByIdException {
+        return VPNServiceDTO.Response.Public.fromEntity(
+                servicesRepo.findById(id)
+                .orElseThrow(() -> new ServiceNotFoundByIdException(id))
+        );
     }
 
-    public void add(VPNServiceDTO.Request.Create request) throws ServerAlreadyExists {
-
-        if(servicesRepo.existsByServer(request.getServer())) {
-            throw new ServerAlreadyExists(request.getServer());
+    public VPNServiceDTO.Response.Public add(VPNServiceDTO.Request.Create request) throws ServerAlreadyExistsException {
+        if (servicesRepo.existsByServer(request.getServer())) {
+            throw new ServerAlreadyExistsException(request.getServer());
         }
 
-        servicesRepo.save(VPNServiceDTO.Request.Create.toEntity(request));
+        VPNService service = VPNServiceDTO.Request.Create.toEntity(request);
+        servicesRepo.save(service);
+
+        return VPNServiceDTO.Response.Public.fromEntity(service);
     }
 
-    public void delete(long id) {
-        servicesRepo.deleteById(id);
+    public void delete(long id) throws ServiceNotFoundByIdException {
+        if (servicesRepo.existsById(id)) {
+            servicesRepo.deleteById(id);
+        } else {
+            throw new ServiceNotFoundByIdException(id);
+        }
     }
 
-    public boolean update(long id, VPNServiceDTO.Request.Create request) throws ServerAlreadyExists {
+    public VPNServiceDTO.Response.Public update(long id, VPNServiceDTO.Request.Create request) throws ServiceNotFoundByIdException {
         Optional<VPNService> optionalService = servicesRepo.findById(id);
 
-        if(optionalService.isPresent()) {
-
-            if(servicesRepo.existsByServer(request.getServer())) {
-                throw new ServerAlreadyExists(request.getServer());
-            }
-
-            VPNService service = optionalService.get();
-            VPNServiceDTO.Request.Create.merge(request, service);
-            servicesRepo.save(service);
-
-            return true;
+        if (!optionalService.isPresent()) {
+            throw new ServiceNotFoundByIdException(id);
         }
 
-        return false;
+        VPNService service = optionalService.get();
+        VPNServiceDTO.Request.Create.merge(request, service);
+        servicesRepo.save(service);
+
+        return VPNServiceDTO.Response.Public.fromEntity(service);
     }
 }

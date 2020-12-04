@@ -1,22 +1,25 @@
 package com.example.netcracker_vpn.controllers;
 
-import com.example.netcracker_vpn.domain.VPNServiceDTO;
-import com.example.netcracker_vpn.exceptions.ServerAlreadyExists;
+import com.example.netcracker_vpn.domain.dto.VPNServiceDTO;
+import com.example.netcracker_vpn.exceptions.ServerAlreadyExistsException;
+import com.example.netcracker_vpn.exceptions.ServiceNotFoundByIdException;
 import com.example.netcracker_vpn.services.VPNServicesService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.http.ResponseEntity;
 
+import javax.validation.Valid;
 import java.util.Collection;
-import java.util.Map;
-import java.util.Optional;
 
 @Controller
 public class NoteController {
 
+    private final VPNServicesService servicesService;
+
     @Autowired
-    VPNServicesService servicesService;
+    public NoteController(VPNServicesService servicesService) {
+        this.servicesService = servicesService;
+    }
 
     @PostMapping("/note")
     @ResponseBody
@@ -26,46 +29,35 @@ public class NoteController {
 
     @PutMapping("/note")
     @ResponseBody
-    public ResponseEntity<Map<String, Object>> addVPNService(VPNServiceDTO.Request.Create request) {
-        try {
-            servicesService.add(request);
-            return ResponseEntity.ok().build();
-        } catch (ServerAlreadyExists e) {
-            return ResponseEntity.badRequest().body(e.getParams());
-        }
+    public VPNServiceDTO.Response.Public addVPNService(@Valid @RequestBody VPNServiceDTO.Request.Create request) throws ServerAlreadyExistsException {
+        return servicesService.add(request);
     }
 
     @PostMapping("/note/{id}")
     @ResponseBody
-    public VPNServiceDTO.Response.Public getVPNService(@PathVariable long id) {
-        Optional<VPNServiceDTO.Response.Public> serviceDTO = servicesService.getById(id);
-        return serviceDTO.orElse(null);
+    public VPNServiceDTO.Response.Public getVPNService(@PathVariable long id) throws ServiceNotFoundByIdException {
+        return servicesService.getById(id);
     }
 
     @PostMapping("/note/update/{id}")
     @ResponseBody
-    public ResponseEntity<Map<String, Object>> updateVPNService(@PathVariable long id,VPNServiceDTO.Request.Create request) {
-        try {
-            servicesService.update(id, request);
-            return ResponseEntity.ok().build();
-        } catch (ServerAlreadyExists e) {
-            return ResponseEntity.badRequest().body(e.getParams());
-        }
+    public VPNServiceDTO.Response.Public updateVPNService(@PathVariable long id, @RequestBody VPNServiceDTO.Request.Create request) throws ServiceNotFoundByIdException {
+        return(servicesService.update(id, request));
     }
 
     @DeleteMapping("/note/{id}")
     @ResponseBody
-    public void updateVPNService(@PathVariable long id) {
+    public void deleteVPNServiceById(@PathVariable long id) throws ServiceNotFoundByIdException {
         servicesService.delete(id);
     }
 
     @GetMapping("/note")
-    public String getNotes() {
-        return "notes";
+    public String getIndex() {
+        return "app";
     }
 
     @GetMapping("/note/{id}")
     public String getNote(@PathVariable long id) {
-        return "note";
+        return "app";
     }
 }
